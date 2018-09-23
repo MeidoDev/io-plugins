@@ -3,18 +3,10 @@ using Logger = BepInEx.Logger;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 namespace DynamicTranslator
 {
-    public sealed class TranslationDomains
-    {
-        public const string ADV = "adv";
-
-        public static readonly string[] ValidDomains = {
-            ADV
-        };
-    }
-
     public class TranslatorException : Exception
     {
         public TranslatorException(string message) : base(message)
@@ -71,11 +63,44 @@ namespace DynamicTranslator
             LoadTranslations();
         }
 
+        public static void DumpMissingTranslations()
+        {
+            if (!is_initialized)
+                throw new TranslatorException("Translator not initialized");
+
+            foreach(KeyValuePair<string, List<string>> entry in missing)
+            {
+                string filePath = Path.Combine(trans_dir, string.Format("missing_{0}.txt", entry.Key));
+
+                try
+                {
+                    using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+                    {
+                        // The game internally uses \n for linebreaks so make sure the writer does the same
+                        writer.NewLine = "\n";
+
+                        foreach (string missingTrans in entry.Value)
+                        {
+                            writer.WriteLine(T_ML_STARTEND);
+                            writer.WriteLine(missingTrans);
+                            writer.WriteLine(T_ML_DELIM);
+                            writer.WriteLine(T_ML_STARTEND);
+                            writer.WriteLine();
+                        }
+                    }
+                }
+                catch (IOException)
+                {
+                    Logger.Log(LogLevel.Error, string.Format("Unable to write file '{0}'", Path.GetFileName(filePath)));
+                }
+            }
+        }
+
         public static string Translate(string domain, string text)
         {
             string translated = text;
 
-            if (is_initialized && text.Length > 0)
+            if (is_initialized && domain != TranslationDomain.D_DISABLED && text.Length > 0 && text.Trim().Length > 0)
             {
                 if (dict.ContainsKey(domain) && dict[domain].ContainsKey(text))
                 {
@@ -114,7 +139,7 @@ namespace DynamicTranslator
             try
             {
                 string domain = Path.GetFileNameWithoutExtension(filePath).ToLower();
-                if (Array.IndexOf(TranslationDomains.ValidDomains, domain) == -1)
+                if (Array.IndexOf(TranslationDomain.ValidDomains, domain) == -1)
                 {
                     throw new TranslatorException("Invalid domain (filename)");
                 }
@@ -132,11 +157,16 @@ namespace DynamicTranslator
                     int lineNumber = 1;
                     string transFrom = "";
                     string transTo = "";
-                    string buffer = "";
+                    List<string> mlBuffer = new List<string>();
 
                     while ((currentLine = reader.ReadLine())!= null)
                     {
                         lineNumber++;
+
+                        //
+                        // Important:   The game internally uses \n for linebreaks,
+                        //              thus we use the same when combining multiline strings
+                        //
 
                         if (currentLine.Length > 0 && currentLine[0] == '#')
                         {
@@ -147,18 +177,18 @@ namespace DynamicTranslator
                         if (currentLine.Length == 0)
                         {
                             if (isMultiline)
-                                buffer += "\n";
+                                mlBuffer.Add("");
                         }
                         else if (currentLine.StartsWith(T_ML_STARTEND))
                         {
                             if (isMultiline)
                             {
                                 // End of translation indicator
-                                if (buffer.Length == 0)
+                                if (mlBuffer.Count == 0)
                                     throw new TranslatorException(string.Format("Empty multiline block at line {0}", lineNumber));
 
-                                transTo = buffer;
-                                buffer = "";
+                                transTo = string.Join("\n", mlBuffer.ToArray());
+                                mlBuffer.Clear();
                                 isMultiline = false;
                                 doCommit = true;
                             }
@@ -170,15 +200,15 @@ namespace DynamicTranslator
                         }
                         else if (currentLine.StartsWith(T_ML_DELIM))
                         {
-                            if (buffer.Length == 0)
+                            if (mlBuffer.Count == 0)
                                 throw new TranslatorException(string.Format("Empty multiline block at line {0}", lineNumber));
 
-                            transFrom = buffer;
-                            buffer = "";
+                            transFrom = string.Join("\n", mlBuffer.ToArray());
+                            mlBuffer.Clear();
                         }
                         else if (isMultiline)
                         {
-                            buffer += "\n" + currentLine;
+                            mlBuffer.Add(currentLine);
                         }
                         else
                         {
@@ -206,8 +236,6 @@ namespace DynamicTranslator
                             doCommit = false;
                         }
                     }
-
-                    reader.Close();
 
                     Logger.Log(LogLevel.Debug, string.Format("Loaded {0} translations from file {1}", domainDict.Count, Path.GetFileName(filePath)));
 

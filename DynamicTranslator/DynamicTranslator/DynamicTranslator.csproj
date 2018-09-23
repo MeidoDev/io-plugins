@@ -53,6 +53,7 @@
     <Compile Include="IOTranslator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TextTranslator.cs" />
+    <Compile Include="TranslationDomain.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
