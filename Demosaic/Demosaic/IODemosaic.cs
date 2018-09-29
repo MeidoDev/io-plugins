@@ -1,6 +1,4 @@
-﻿using System;
-using BepInEx;
-using UnityEngine;
+﻿using BepInEx;
 
 namespace Demosaic
 {

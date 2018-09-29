@@ -22,7 +22,6 @@ namespace Demosaic
 
         [HarmonyPostfix, HarmonyPatch(typeof(TitleScript), "Awake")]
         public static void TitleScript_Awake_Post() =>
-            // Disable anal mosaic rendering
             ConfigClass.AnalMoza = false;
 
         [HarmonyPostfix, HarmonyPatch(typeof(CostumeSetUp_CH01), "CharacterSetUp")]
@@ -55,6 +54,12 @@ namespace Demosaic
             for (int i = 0; i < __instance.MeshObj.Count; i++)
                 if (__instance.MeshObj[i].name.Contains("moza"))
                     __instance.MeshObj[i].GetComponent<Renderer>().enabled = false;
+        }
+
+        [HarmonyPostfix, HarmonyPatch(typeof(MozaicSetUp), "Start")]
+        public static void MozaicSetUp_Start_Post(MozaicSetUp __instance)
+        {
+            __instance.MozaObj.enabled = false;
         }
 
         [HarmonyPostfix, HarmonyPatch(typeof(DanmenPixel), "Start")]
