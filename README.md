@@ -14,6 +14,10 @@ This is a collection of [BepInEx](https://github.com/BepInEx/BepInEx) plugins fo
 
 ## Available plugins
 
+* **BetterMirror**
+
+Improves the rendering / texture quality of the mirror object. (256px -> 2048px)
+
 * **Demosaic**
 
 Removes mosaics from various private parts.
