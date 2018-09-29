@@ -49,6 +49,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Hooks.cs" />
     <Compile Include="IODemosaic.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
